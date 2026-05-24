@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,6 +16,25 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased bg-stone-50 text-stone-900 min-h-screen flex flex-col">
+        <header className="border-b border-stone-200 bg-white/70 backdrop-blur-sm sticky top-0 z-10">
+          <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between text-sm">
+            <Link href="/" className="font-semibold text-stone-900 tracking-tight">
+              Island
+            </Link>
+            <nav className="flex gap-5 text-stone-600">
+              <Link href="/recalls" className="hover:text-stone-900">Recalls</Link>
+              <Link href="/bll" className="hover:text-stone-900">BLL by state</Link>
+              <a
+                href="https://github.com/GG1000000000/island"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-stone-900"
+              >
+                GitHub
+              </a>
+            </nav>
+          </div>
+        </header>
         <div className="flex-1">{children}</div>
         <footer className="max-w-4xl mx-auto w-full px-6 py-8 text-xs text-stone-500 border-t border-stone-200 mt-12">
           Built on public-domain regulatory data: EPA, FDA, OEHHA (Prop 65), CDC, WHO, EFSA, ATSDR,
