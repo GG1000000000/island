@@ -22,8 +22,9 @@ export default function RootLayout({
               Island
             </Link>
             <nav className="flex gap-5 text-stone-600">
+              <Link href="/calc" className="hover:text-stone-900">Calc</Link>
               <Link href="/recalls" className="hover:text-stone-900">Recalls</Link>
-              <Link href="/bll" className="hover:text-stone-900">BLL by state</Link>
+              <Link href="/bll" className="hover:text-stone-900">BLL</Link>
               <a
                 href="https://github.com/GG1000000000/island"
                 target="_blank"

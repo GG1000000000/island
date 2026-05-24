@@ -79,6 +79,23 @@ export type BllByStateRow = {
   ingested_at: string;
 };
 
+export type FoodCalcRow = {
+  id: number;
+  original_id: number;
+  name: string;
+  ppb: number | null;
+  ppb_cadmium: number | null;
+  ppb_arsenic: number | null;
+  ppb_mercury: number | null;
+  grams: number | null;
+  image_url: string | null;
+  category_id: number | null;
+  has_tooltip: boolean;
+  tooltip_text: string | null;
+  is_sentinel: boolean;
+  created_at: string;
+};
+
 export type ContaminantLimitsWideRow = {
   contaminant_id: number;
   contaminant: string;
@@ -122,6 +139,12 @@ export type Database = {
         Row: BllByStateRow;
         Insert: Partial<BllByStateRow>;
         Update: Partial<BllByStateRow>;
+        Relationships: [];
+      };
+      food_calc: {
+        Row: FoodCalcRow;
+        Insert: Partial<FoodCalcRow>;
+        Update: Partial<FoodCalcRow>;
         Relationships: [];
       };
     };
