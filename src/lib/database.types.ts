@@ -100,13 +100,33 @@ export type ContaminantLimitsWideRow = {
 export type Database = {
   app: {
     Tables: {
-      contaminants: { Row: ContaminantRow; Insert: Partial<ContaminantRow>; Update: Partial<ContaminantRow> };
-      contaminant_limits: { Row: ContaminantLimitRow; Insert: Partial<ContaminantLimitRow>; Update: Partial<ContaminantLimitRow> };
-      recalls: { Row: RecallRow; Insert: Partial<RecallRow>; Update: Partial<RecallRow> };
-      bll_by_state: { Row: BllByStateRow; Insert: Partial<BllByStateRow>; Update: Partial<BllByStateRow> };
+      contaminants: {
+        Row: ContaminantRow;
+        Insert: Partial<ContaminantRow>;
+        Update: Partial<ContaminantRow>;
+        Relationships: [];
+      };
+      contaminant_limits: {
+        Row: ContaminantLimitRow;
+        Insert: Partial<ContaminantLimitRow>;
+        Update: Partial<ContaminantLimitRow>;
+        Relationships: [];
+      };
+      recalls: {
+        Row: RecallRow;
+        Insert: Partial<RecallRow>;
+        Update: Partial<RecallRow>;
+        Relationships: [];
+      };
+      bll_by_state: {
+        Row: BllByStateRow;
+        Insert: Partial<BllByStateRow>;
+        Update: Partial<BllByStateRow>;
+        Relationships: [];
+      };
     };
     Views: {
-      contaminant_limits_wide: { Row: ContaminantLimitsWideRow };
+      contaminant_limits_wide: { Row: ContaminantLimitsWideRow; Relationships: [] };
     };
     Functions: Record<string, never>;
     Enums: Record<string, never>;
