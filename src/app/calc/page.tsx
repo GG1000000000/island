@@ -4,34 +4,29 @@ import { Calculator, type FoodRow, type LimitRow } from "./calculator";
 export const dynamic = "force-dynamic";
 
 async function fetchFoods(): Promise<FoodRow[]> {
-  const all: FoodRow[] = [];
-  let offset = 0;
-  while (true) {
-    const { data, error } = await supabase
-      .from("food_calc")
-      .select("id, name, ppb, ppb_cadmium, ppb_arsenic, ppb_mercury, grams")
-      .order("name")
-      .range(offset, offset + 999);
-    if (error) {
-      console.error("food_calc:", error);
-      break;
-    }
-    if (!data || data.length === 0) break;
-    for (const r of data) {
-      all.push({
-        id: r.id,
-        name: r.name,
-        ppb: r.ppb,
-        ppb_cadmium: r.ppb_cadmium,
-        ppb_arsenic: r.ppb_arsenic,
-        ppb_mercury: r.ppb_mercury,
-        grams: r.grams,
-      });
-    }
-    if (data.length < 1000) break;
-    offset += 1000;
+  // app.food_calc is only granted to service_role; the public app_api.food_calc
+  // view exposes the same data to anon (capped at 500 rows by the view's LIMIT).
+  // To unlock all 1,343 foods, run in Studio:
+  //   GRANT SELECT ON app.food_calc TO anon;
+  // and switch the Accept-Profile back to 'app'.
+  const url =
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/food_calc` +
+    `?select=id,name,ppb,ppb_cadmium,ppb_arsenic,ppb_mercury,grams` +
+    `&order=name`;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const res = await fetch(url, {
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Accept-Profile": "app_api",
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    console.error("food_calc fetch:", res.status, await res.text());
+    return [];
   }
-  return all;
+  return (await res.json()) as FoodRow[];
 }
 
 async function fetchLimits(): Promise<LimitRow[]> {
