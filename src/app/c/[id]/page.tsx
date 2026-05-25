@@ -123,9 +123,9 @@ export default async function ContaminantPage({
         // Foods pivot: only renders if we have ppb data for this contaminant in BLC.
         const field = FOOD_FIELD_BY_CONTAMINANT[c.name];
         if (!field) return null;
-        type F = { id: number; name: string; grams: number | null } & Record<string, unknown>;
-        const top = (foodsData as F[])
-          .map((f) => ({ ...f, val: Number(f[field] ?? 0) }))
+        type F = { id: number; name: string; grams: string | number | null; [k: string]: unknown };
+        const top = (foodsData as unknown as F[])
+          .map((f) => ({ ...f, val: Number((f as Record<string, unknown>)[field] ?? 0) }))
           .filter((f) => Number.isFinite(f.val) && f.val > 0)
           .sort((a, b) => b.val - a.val)
           .slice(0, 12);
