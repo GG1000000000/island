@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { ContaminantSearch } from "@/components/contaminant-search";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,28 @@ async function fetchFeatured() {
   return data ?? [];
 }
 
+async function fetchAllContaminants() {
+  // Paginate just in case the table grows past 1k. Today it's ~966.
+  const all: Array<{ id: number; name: string; symbol: string | null; category: string }> = [];
+  let offset = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from("contaminants")
+      .select("id, name, symbol, category")
+      .order("name")
+      .range(offset, offset + 999);
+    if (error) {
+      console.error("contaminants list query:", error);
+      break;
+    }
+    if (!data || data.length === 0) break;
+    for (const r of data) all.push(r);
+    if (data.length < 1000) break;
+    offset += 1000;
+  }
+  return all;
+}
+
 async function fetchCounts() {
   const [contaminants, limits, recalls, bll] = await Promise.all([
     supabase.from("contaminants").select("*", { count: "exact", head: true }),
@@ -48,7 +71,11 @@ async function fetchCounts() {
 }
 
 export default async function Home() {
-  const [featured, counts] = await Promise.all([fetchFeatured(), fetchCounts()]);
+  const [featured, allContaminants, counts] = await Promise.all([
+    fetchFeatured(),
+    fetchAllContaminants(),
+    fetchCounts(),
+  ]);
   const sorted = [...featured].sort(
     (a, b) => FEATURED_NAMES.indexOf(a.name) - FEATURED_NAMES.indexOf(b.name),
   );
@@ -59,11 +86,15 @@ export default async function Home() {
         Island.
       </h1>
       <p className="text-xl text-stone-700 mb-3">The numbers, and what they mean.</p>
-      <p className="text-base text-stone-600 max-w-2xl mb-10 leading-relaxed">
+      <p className="text-base text-stone-600 max-w-2xl mb-8 leading-relaxed">
         How much of a contaminant you are exposed to, and what five different
         agencies say about it. No proprietary score. No paywall. Just public
         regulatory data with a citation behind every value.
       </p>
+
+      <div className="mb-12">
+        <ContaminantSearch items={allContaminants} />
+      </div>
 
       <h2 className="text-xs font-medium text-stone-900 uppercase tracking-wide mb-4">
         Featured contaminants
