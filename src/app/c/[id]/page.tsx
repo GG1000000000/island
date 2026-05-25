@@ -35,6 +35,19 @@ export default async function ContaminantPage({
   if (!data) notFound();
   const { contaminant: c, limits } = data;
 
+  // Compute a same-unit min/max range across agencies for the "issues" block.
+  const sameUnitRange = (() => {
+    if (limits.length < 2) return null;
+    const sameUnit = limits.filter((L) => L.unit === limits[0].unit);
+    if (sameUnit.length < 2) return null;
+    const amounts = sameUnit.map((L) => L.amount).filter((n) => Number.isFinite(n) && n > 0);
+    if (amounts.length < 2) return null;
+    const min = Math.min(...amounts);
+    const max = Math.max(...amounts);
+    if (min === max) return null;
+    return { unit: limits[0].unit, min, max, count: sameUnit.length };
+  })();
+
   return (
     <main className="max-w-4xl mx-auto px-6 pt-10 pb-16">
       <Link
@@ -94,6 +107,42 @@ export default async function ContaminantPage({
             Where it shows up
           </h2>
           <p className="text-stone-700 leading-relaxed whitespace-pre-line">{c.source_notes}</p>
+        </div>
+      )}
+
+      {limits.length > 0 && (
+        <div className="mb-6 rounded-lg bg-stone-100/60 border border-stone-200 p-5">
+          <h2 className="text-xs font-medium text-stone-900 uppercase tracking-wide mb-2">
+            How to read the numbers below
+          </h2>
+          <p className="text-sm text-stone-600 leading-relaxed">
+            Each agency is answering a different question. EPA MCLs are legally
+            enforceable limits in tap water. FDA action levels trigger enforcement
+            on specific foods (baby food, juice, candy, fish). OEHHA NSRL and MADL
+            are California Prop 65 ceilings per individual per day (NSRL for
+            cancer, MADL for reproductive harm). EFSA TDI is the tolerable daily
+            intake under lifetime exposure. WHO guidelines are aspirational
+            international recommendations. CDC BLRVs are population reference
+            values for biomonitoring, not safe levels.
+          </p>
+          <p className="text-sm text-stone-600 leading-relaxed mt-2">
+            Strict numbers are not &ldquo;right&rdquo; and lenient ones are not
+            &ldquo;wrong.&rdquo; They answer different questions. Look at the range
+            and the unit, not just the smallest number.
+          </p>
+          {sameUnitRange && (
+            <p className="text-sm text-stone-700 mt-3 pt-3 border-t border-stone-200">
+              For {c.name}: the strictest reference in {sameUnitRange.unit} is{" "}
+              <span className="font-medium tabular-nums">{sameUnitRange.min}</span>,
+              the most lenient is{" "}
+              <span className="font-medium tabular-nums">{sameUnitRange.max}</span>.
+              That is a{" "}
+              <span className="font-medium tabular-nums">
+                {(sameUnitRange.max / sameUnitRange.min).toFixed(0)}x
+              </span>{" "}
+              spread across {sameUnitRange.count} reference values.
+            </p>
+          )}
         </div>
       )}
 
