@@ -1,40 +1,52 @@
 import { supabase } from "@/lib/supabase";
 import { Calculator, type FoodRow, type LimitRow } from "./calculator";
 
-export const dynamic = "force-dynamic";
+// Server-component, cache the page for 1 hour. The food list updates rarely;
+// the BLC api.php is shared hosting so we don't want to hammer it.
+export const revalidate = 3600;
+
+type BlcFood = {
+  id: number;
+  name: string;
+  ppb: string | null;
+  ppb_cadmium: string | null;
+  ppb_arsenic: string | null;
+  ppb_mercury: string | null;
+  grams: string | null;
+};
+
+function toNum(s: string | null): number | null {
+  if (s == null) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
 
 async function fetchFoods(): Promise<FoodRow[]> {
-  // Requires: GRANT SELECT ON app.food_calc TO anon; in Supabase Studio.
-  // (The legacy app_api.* views are NOT PostgREST-exposed; only the `app`
-  // schema is, and the base tables need their own grants for anon.)
-  const all: FoodRow[] = [];
-  let offset = 0;
-  while (true) {
-    const { data, error } = await supabase
-      .from("food_calc")
-      .select("id, name, ppb, ppb_cadmium, ppb_arsenic, ppb_mercury, grams")
-      .order("name")
-      .range(offset, offset + 999);
-    if (error) {
-      console.error("food_calc query failed (run the GRANT):", error.message);
-      break;
+  // Wired to Eric's existing greengeeks-hosted PHP API at bloodleadcalculator.com.
+  // Same data Eric maintains for the live calculator; no Supabase GRANT needed.
+  const url = "https://bloodleadcalculator.com/api.php?resource=foods";
+  try {
+    const res = await fetch(url, { next: { revalidate: 3600 } });
+    if (!res.ok) {
+      console.error("BLC api.php fetch failed:", res.status);
+      return [];
     }
-    if (!data || data.length === 0) break;
-    for (const r of data) {
-      all.push({
+    const raw = (await res.json()) as BlcFood[];
+    return raw
+      .map<FoodRow>((r) => ({
         id: r.id,
         name: r.name,
-        ppb: r.ppb,
-        ppb_cadmium: r.ppb_cadmium,
-        ppb_arsenic: r.ppb_arsenic,
-        ppb_mercury: r.ppb_mercury,
-        grams: r.grams,
-      });
-    }
-    if (data.length < 1000) break;
-    offset += 1000;
+        ppb: toNum(r.ppb),
+        ppb_cadmium: toNum(r.ppb_cadmium),
+        ppb_arsenic: toNum(r.ppb_arsenic),
+        ppb_mercury: toNum(r.ppb_mercury),
+        grams: toNum(r.grams),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch (err) {
+    console.error("BLC fetch error:", err);
+    return [];
   }
-  return all;
 }
 
 async function fetchLimits(): Promise<LimitRow[]> {
