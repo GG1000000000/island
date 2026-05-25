@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 
 export type ProductRow = {
   brand: string;
@@ -108,7 +109,14 @@ export function ProductsTable({ rows }: { rows: ProductRow[] }) {
             <tbody className="divide-y divide-stone-100">
               {filtered.slice(0, 200).map((r, i) => (
                 <tr key={`${r.brand}-${r.product_name}-${i}`} className="hover:bg-stone-50/60">
-                  <td className="px-4 py-3 text-stone-900 font-medium whitespace-nowrap">{r.brand}</td>
+                  <td className="px-4 py-3 text-stone-900 font-medium whitespace-nowrap">
+                    <Link
+                      href={`/brand/${encodeURIComponent(r.brand)}`}
+                      className="hover:underline hover:text-stone-700"
+                    >
+                      {r.brand}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-stone-700">{r.product_name}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-stone-700">{r.lot_count ?? "—"}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{fmt(r.lead_avg)}</td>

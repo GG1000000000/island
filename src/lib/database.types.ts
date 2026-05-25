@@ -79,6 +79,22 @@ export type BllByStateRow = {
   ingested_at: string;
 };
 
+export type ZipRiskRow = {
+  zip: string;
+  state: string | null;
+  place: string | null;
+  total_units: number | null;
+  median_year: number | null;
+  pre1950: number | null;
+  b1950s: number | null;
+  b1960s: number | null;
+  b1970s: number | null;
+  b1980s: number | null;
+  lsl_tier: number | null;
+  source: string;
+  updated_at: string;
+};
+
 export type FoodCalcRow = {
   id: number;
   original_id: number;
@@ -145,6 +161,12 @@ export type Database = {
         Row: FoodCalcRow;
         Insert: Partial<FoodCalcRow>;
         Update: Partial<FoodCalcRow>;
+        Relationships: [];
+      };
+      zip_risk: {
+        Row: ZipRiskRow;
+        Insert: Partial<ZipRiskRow>;
+        Update: Partial<ZipRiskRow>;
         Relationships: [];
       };
     };

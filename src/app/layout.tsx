@@ -21,9 +21,10 @@ export default function RootLayout({
             <Link href="/" className="font-semibold text-stone-900 tracking-tight">
               Island
             </Link>
-            <nav className="flex gap-5 text-stone-600">
+            <nav className="flex gap-4 text-stone-600">
               <Link href="/products" className="hover:text-stone-900">Products</Link>
               <Link href="/calc" className="hover:text-stone-900">Calc</Link>
+              <Link href="/tap" className="hover:text-stone-900">Tap</Link>
               <Link href="/recalls" className="hover:text-stone-900">Recalls</Link>
               <Link href="/bll" className="hover:text-stone-900">BLL</Link>
               <a

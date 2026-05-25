@@ -2,8 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import foodsData from "@/data/foods.json";
 
 export const dynamic = "force-dynamic";
+
+// Map contaminant name (in app.contaminants) to the ppb field in foods.json.
+const FOOD_FIELD_BY_CONTAMINANT: Record<string, string> = {
+  Lead: "ppb",
+  Cadmium: "ppb_cadmium",
+  "Inorganic Arsenic": "ppb_arsenic",
+  Mercury: "ppb_mercury",
+};
 
 async function getContaminant(id: number) {
   const { data: c } = await supabase
@@ -102,13 +111,60 @@ export default async function ContaminantPage({
       )}
 
       {c.source_notes && (
-        <div className="mb-10">
+        <div className="mb-8">
           <h2 className="text-xs font-medium text-stone-900 uppercase tracking-wide mb-2">
             Where it shows up
           </h2>
           <p className="text-stone-700 leading-relaxed whitespace-pre-line">{c.source_notes}</p>
         </div>
       )}
+
+      {(() => {
+        // Foods pivot: only renders if we have ppb data for this contaminant in BLC.
+        const field = FOOD_FIELD_BY_CONTAMINANT[c.name];
+        if (!field) return null;
+        type F = { id: number; name: string; grams: number | null } & Record<string, unknown>;
+        const top = (foodsData as F[])
+          .map((f) => ({ ...f, val: Number(f[field] ?? 0) }))
+          .filter((f) => Number.isFinite(f.val) && f.val > 0)
+          .sort((a, b) => b.val - a.val)
+          .slice(0, 12);
+        if (top.length === 0) return null;
+        return (
+          <div className="mb-10">
+            <h2 className="text-xs font-medium text-stone-900 uppercase tracking-wide mb-3">
+              Top foods containing {c.name}
+            </h2>
+            <div className="border border-stone-200 rounded-lg overflow-hidden bg-white">
+              <table className="w-full text-sm">
+                <thead className="bg-stone-50 text-left">
+                  <tr>
+                    <th className="px-4 py-2 font-medium text-stone-700">Food</th>
+                    <th className="px-4 py-2 font-medium text-stone-700 text-right">ppb (µg/kg)</th>
+                    <th className="px-4 py-2 font-medium text-stone-700 text-right">serving</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {top.map((f) => (
+                    <tr key={f.id} className="hover:bg-stone-50/60">
+                      <td className="px-4 py-2 text-stone-900">{f.name as string}</td>
+                      <td className="px-4 py-2 text-right tabular-nums font-medium">
+                        {f.val.toFixed(f.val < 1 ? 3 : f.val < 10 ? 2 : 1)}
+                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums text-stone-500 text-xs">
+                        {f.grams ? `${f.grams}g` : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-stone-500 mt-2">
+              Sorted by ppb. Open <Link href="/calc" className="underline hover:text-stone-700">/calc</Link> to compute your daily dose from real servings.
+            </p>
+          </div>
+        );
+      })()}
 
       {limits.length > 0 && (
         <div className="mb-6 rounded-lg bg-stone-100/60 border border-stone-200 p-5">
