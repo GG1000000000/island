@@ -80,11 +80,20 @@ export default async function ContaminantPage({
       )}
 
       {c.health_effects && (
-        <div className="mb-10">
+        <div className="mb-8">
           <h2 className="text-xs font-medium text-stone-900 uppercase tracking-wide mb-2">
             Health effects
           </h2>
           <p className="text-stone-700 leading-relaxed">{c.health_effects}</p>
+        </div>
+      )}
+
+      {c.source_notes && (
+        <div className="mb-10">
+          <h2 className="text-xs font-medium text-stone-900 uppercase tracking-wide mb-2">
+            Where it shows up
+          </h2>
+          <p className="text-stone-700 leading-relaxed whitespace-pre-line">{c.source_notes}</p>
         </div>
       )}
 
