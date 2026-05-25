@@ -3,9 +3,26 @@ import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Island. The numbers, and what they mean.",
+  metadataBase: new URL("https://island-5yov.vercel.app"),
+  title: {
+    default: "Island. The numbers, and what they mean.",
+    template: "%s · Island",
+  },
   description:
     "An open-source view of contaminant exposure and what five different agencies say about it. No proprietary score, no paywall, just the data with citations.",
+  openGraph: {
+    type: "website",
+    title: "Island. The numbers, and what they mean.",
+    description:
+      "How much of a contaminant is in things, and what five different agencies say about it. Free, fully cited, open source.",
+    siteName: "Island",
+  },
+  twitter: {
+    card: "summary",
+    title: "Island. The numbers, and what they mean.",
+    description:
+      "Contaminant exposure with every value cited to its agency source. Free, no paywall, open source.",
+  },
 };
 
 export default function RootLayout({
@@ -21,12 +38,13 @@ export default function RootLayout({
             <Link href="/" className="font-semibold text-stone-900 tracking-tight">
               Island
             </Link>
-            <nav className="flex gap-4 text-stone-600">
+            <nav className="flex gap-4 text-stone-600 text-xs sm:text-sm">
               <Link href="/products" className="hover:text-stone-900">Products</Link>
               <Link href="/calc" className="hover:text-stone-900">Calc</Link>
               <Link href="/tap" className="hover:text-stone-900">Tap</Link>
               <Link href="/recalls" className="hover:text-stone-900">Recalls</Link>
               <Link href="/bll" className="hover:text-stone-900">BLL</Link>
+              <Link href="/about" className="hover:text-stone-900">About</Link>
               <a
                 href="https://github.com/GG1000000000/island"
                 target="_blank"

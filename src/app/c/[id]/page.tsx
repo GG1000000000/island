@@ -31,6 +31,35 @@ async function getContaminant(id: number) {
   return { contaminant: c, limits: limits ?? [] };
 }
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const idNum = Number(id);
+  if (!Number.isFinite(idNum)) return { title: "Contaminant" };
+  const { data: c } = await supabase
+    .from("contaminants")
+    .select("name,description")
+    .eq("id", idNum)
+    .maybeSingle();
+  if (!c) return { title: "Contaminant" };
+  const desc =
+    (c.description?.slice(0, 155).trim() || "") +
+    (c.description && c.description.length > 155 ? "..." : "");
+  return {
+    title: c.name,
+    description:
+      desc ||
+      `${c.name}: agency limits, health effects, and where it shows up. Plain regulatory data with citations.`,
+    openGraph: {
+      title: `${c.name} · Island`,
+      description: desc || `Agency limits and exposure pathways for ${c.name}.`,
+    },
+  };
+}
+
 export default async function ContaminantPage({
   params,
 }: {
