@@ -10,6 +10,13 @@ export type FoodRow = {
   ppb_arsenic: number | null;
   ppb_mercury: number | null;
   grams: number | null;          // serving size
+  category_id: number | null;
+};
+
+export type CategoryRow = {
+  id: number;
+  name: string;
+  type: string;
 };
 
 export type LimitRow = {
@@ -21,26 +28,49 @@ export type LimitRow = {
   notes: string | null;
 };
 
-const METALS: Array<{ key: keyof FoodTotals; label: string; contaminantName: string; field: keyof FoodRow }> = [
-  { key: "lead",     label: "Lead",                contaminantName: "Lead",              field: "ppb" },
-  { key: "cadmium",  label: "Cadmium",             contaminantName: "Cadmium",           field: "ppb_cadmium" },
-  { key: "arsenic",  label: "Inorganic Arsenic",   contaminantName: "Inorganic Arsenic", field: "ppb_arsenic" },
-  { key: "mercury",  label: "Mercury",             contaminantName: "Mercury",           field: "ppb_mercury" },
+const METALS: Array<{ key: keyof FoodTotals; label: string; contaminantName: string }> = [
+  { key: "lead",     label: "Lead",              contaminantName: "Lead" },
+  { key: "cadmium",  label: "Cadmium",           contaminantName: "Cadmium" },
+  { key: "arsenic",  label: "Inorganic Arsenic", contaminantName: "Inorganic Arsenic" },
+  { key: "mercury",  label: "Mercury",           contaminantName: "Mercury" },
 ];
 
 type FoodTotals = { lead: number; cadmium: number; arsenic: number; mercury: number };
 
-export function Calculator({ foods, limits }: { foods: FoodRow[]; limits: LimitRow[] }) {
+export function Calculator({
+  foods,
+  categories,
+  limits,
+}: {
+  foods: FoodRow[];
+  categories: CategoryRow[];
+  limits: LimitRow[];
+}) {
   const [search, setSearch] = useState("");
   const [picks, setPicks] = useState<Record<number, number>>({}); // foodId -> servings
+  const [activeCat, setActiveCat] = useState<number | null>(null);
+
+  // Only show categories that actually have foods, sorted by count desc.
+  const availableCats = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const f of foods) {
+      if (f.category_id != null) {
+        counts.set(f.category_id, (counts.get(f.category_id) ?? 0) + 1);
+      }
+    }
+    return categories
+      .map((c) => ({ ...c, count: counts.get(c.id) ?? 0 }))
+      .filter((c) => c.count > 0)
+      .sort((a, b) => b.count - a.count);
+  }, [foods, categories]);
 
   const matched = useMemo(() => {
+    let pool =
+      activeCat == null ? foods : foods.filter((f) => f.category_id === activeCat);
     const s = search.trim().toLowerCase();
-    if (!s) return [];
-    return foods
-      .filter((f) => f.name.toLowerCase().includes(s))
-      .slice(0, 20);
-  }, [foods, search]);
+    if (s) pool = pool.filter((f) => f.name.toLowerCase().includes(s));
+    return pool.slice(0, 30);
+  }, [foods, search, activeCat]);
 
   const totals: FoodTotals = useMemo(() => {
     const t: FoodTotals = { lead: 0, cadmium: 0, arsenic: 0, mercury: 0 };
@@ -63,7 +93,6 @@ export function Calculator({ foods, limits }: { foods: FoodRow[]; limits: LimitR
     for (const L of limits) {
       (out[L.contaminant] ??= []).push(L);
     }
-    // sort by amount asc (strictest first) per contaminant
     for (const k of Object.keys(out)) {
       out[k].sort((a, b) => a.amount - b.amount);
     }
@@ -72,9 +101,30 @@ export function Calculator({ foods, limits }: { foods: FoodRow[]; limits: LimitR
 
   const pickEntries = Object.entries(picks).filter(([, srv]) => srv > 0);
   const hasPicks = pickEntries.length > 0;
+  const activeCatName = activeCat == null ? null : availableCats.find((c) => c.id === activeCat)?.name;
 
   return (
     <div className="space-y-8">
+      {/* CATEGORY FILTER */}
+      {availableCats.length > 0 && (
+        <section>
+          <label className="text-xs font-medium text-stone-900 uppercase tracking-wide block mb-2">
+            Filter by category
+          </label>
+          <div className="flex gap-2 flex-wrap">
+            <CatChip label="All" active={activeCat == null} onClick={() => setActiveCat(null)} />
+            {availableCats.map((c) => (
+              <CatChip
+                key={c.id}
+                label={`${c.name} (${c.count})`}
+                active={activeCat === c.id}
+                onClick={() => setActiveCat((prev) => (prev === c.id ? null : c.id))}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* SEARCH */}
       <section>
         <label className="text-xs font-medium text-stone-900 uppercase tracking-wide block mb-2">
@@ -84,11 +134,15 @@ export function Calculator({ foods, limits }: { foods: FoodRow[]; limits: LimitR
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="search 1,343 foods: rice, apple juice, tuna, baby cereal..."
+          placeholder={
+            activeCatName
+              ? `search within ${activeCatName}...`
+              : `search ${foods.length.toLocaleString()} foods: rice, apple juice, tuna...`
+          }
           className="w-full px-4 py-3 rounded-lg border border-stone-300 bg-white text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-500"
         />
-        {matched.length > 0 && (
-          <div className="mt-2 border border-stone-200 rounded-lg bg-white overflow-hidden max-h-80 overflow-y-auto">
+        {matched.length > 0 && (search.trim() !== "" || activeCat != null) && (
+          <div className="mt-2 border border-stone-200 rounded-lg bg-white overflow-hidden max-h-96 overflow-y-auto">
             {matched.map((f) => (
               <button
                 key={f.id}
@@ -193,7 +247,7 @@ export function Calculator({ foods, limits }: { foods: FoodRow[]; limits: LimitR
                             : ratio > 0
                               ? "text-stone-600"
                               : "text-stone-300";
-                      const pct = ratio === 0 ? "—" : `${(ratio * 100).toFixed(0)}%`;
+                      const pct = ratio === 0 ? "n/a" : `${(ratio * 100).toFixed(0)}%`;
                       return (
                         <div key={i} className="flex justify-between gap-3 flex-wrap">
                           <span className="text-stone-600">
@@ -213,5 +267,29 @@ export function Calculator({ foods, limits }: { foods: FoodRow[]; limits: LimitR
         </div>
       </section>
     </div>
+  );
+}
+
+function CatChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+        active
+          ? "bg-stone-900 text-white border-stone-900"
+          : "bg-white text-stone-700 border-stone-200 hover:border-stone-400"
+      }`}
+    >
+      {label}
+    </button>
   );
 }

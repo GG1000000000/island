@@ -1,9 +1,12 @@
 import { supabase } from "@/lib/supabase";
-import { Calculator, type FoodRow, type LimitRow } from "./calculator";
+import { Calculator, type FoodRow, type CategoryRow, type LimitRow } from "./calculator";
+import foodsData from "@/data/foods.json";
+import categoriesData from "@/data/categories.json";
 
-// Server-component, cache the page for 1 hour. The food list updates rarely;
-// the BLC api.php is shared hosting so we don't want to hammer it.
-export const revalidate = 3600;
+// Foods + categories are baked in from /src/data/*.json (snapshotted from
+// bloodleadcalculator.com via supabase_migration/snapshot_blc_to_island.py).
+// This protects BLC's shared hosting from Island traffic — Island never hits
+// BLC at runtime; only when Eric re-runs the snapshot script.
 
 type BlcFood = {
   id: number;
@@ -13,7 +16,10 @@ type BlcFood = {
   ppb_arsenic: string | null;
   ppb_mercury: string | null;
   grams: string | null;
+  category_id: number | null;
 };
+
+type BlcCategory = { id: number; name: string; type: string };
 
 function toNum(s: string | null): number | null {
   if (s == null) return null;
@@ -21,33 +27,22 @@ function toNum(s: string | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-async function fetchFoods(): Promise<FoodRow[]> {
-  // Wired to Eric's existing greengeeks-hosted PHP API at bloodleadcalculator.com.
-  // Same data Eric maintains for the live calculator; no Supabase GRANT needed.
-  const url = "https://bloodleadcalculator.com/api.php?resource=foods";
-  try {
-    const res = await fetch(url, { next: { revalidate: 3600 } });
-    if (!res.ok) {
-      console.error("BLC api.php fetch failed:", res.status);
-      return [];
-    }
-    const raw = (await res.json()) as BlcFood[];
-    return raw
-      .map<FoodRow>((r) => ({
-        id: r.id,
-        name: r.name,
-        ppb: toNum(r.ppb),
-        ppb_cadmium: toNum(r.ppb_cadmium),
-        ppb_arsenic: toNum(r.ppb_arsenic),
-        ppb_mercury: toNum(r.ppb_mercury),
-        grams: toNum(r.grams),
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  } catch (err) {
-    console.error("BLC fetch error:", err);
-    return [];
-  }
-}
+const FOODS: FoodRow[] = (foodsData as BlcFood[])
+  .map<FoodRow>((r) => ({
+    id: r.id,
+    name: r.name,
+    ppb: toNum(r.ppb),
+    ppb_cadmium: toNum(r.ppb_cadmium),
+    ppb_arsenic: toNum(r.ppb_arsenic),
+    ppb_mercury: toNum(r.ppb_mercury),
+    grams: toNum(r.grams),
+    category_id: r.category_id ?? null,
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name));
+
+const CATEGORIES: CategoryRow[] = (categoriesData as BlcCategory[])
+  .filter((c) => c.type === "food" || !c.type)
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 async function fetchLimits(): Promise<LimitRow[]> {
   const wantedNames = ["Lead", "Cadmium", "Inorganic Arsenic", "Mercury"];
@@ -80,7 +75,9 @@ async function fetchLimits(): Promise<LimitRow[]> {
 }
 
 export default async function CalcPage() {
-  const [foods, limits] = await Promise.all([fetchFoods(), fetchLimits()]);
+  const limits = await fetchLimits();
+  const foods = FOODS;
+  const categories = CATEGORIES;
 
   return (
     <main className="max-w-3xl mx-auto px-6 pt-10 pb-16">
@@ -96,7 +93,7 @@ export default async function CalcPage() {
         Reference levels: {limits.length} from EPA, FDA, OEHHA (Prop 65), CDC, EFSA, WHO.
       </p>
 
-      <Calculator foods={foods} limits={limits} />
+      <Calculator foods={foods} categories={categories} limits={limits} />
 
       <p className="mt-10 text-xs text-stone-500 max-w-2xl leading-relaxed">
         Estimates only. Per-food values represent typical detection levels from public studies;
